@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovaShop — Premium Modern Storefront</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#1e1b4b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Notification Banner -->
+  <div class="bg-gradient-to-r from-brand-900 via-indigo-900 to-slate-900 text-xs sm:text-sm text-indigo-200 py-2 px-4 text-center border-b border-indigo-800/40">
+    <span>✨ Free 2-Day Shipping on orders over $50 | ⚡ Instant Order Confirmation Emails via Mailgun</span>
+  </div>
+
+  <!-- Main Navbar -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 sm:h-20 gap-4">
+        
+        <!-- Logo -->
+        <a href="/" class="flex items-center gap-2.5 group">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform">
+            <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-brand-700 bg-clip-text text-transparent">NovaShop</span>
+            <span class="hidden sm:inline-block text-[10px] font-semibold tracking-wider uppercase ml-1.5 px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">Store</span>
+          </div>
+        </a>
+
+        <!-- Search Bar (Desktop) -->
+        <div class="flex-1 max-w-md hidden md:block">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input 
+              type="text" 
+              id="searchInput" 
+              placeholder="Search products, headphones, jackets..." 
+              class="w-full pl-10 pr-4 py-2 text-sm bg-slate-100 hover:bg-slate-50 focus:bg-white border border-transparent focus:border-brand-500 rounded-full outline-none transition-all"
+            />
+          </div>
+        </div>
+
+        <!-- Right Side Nav Actions -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          
+          <!-- Cloud Health Indicator -->
+          <div id="healthBadge" class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-600 border border-slate-200" title="System Status">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="healthEngineText">Database</span>
+          </div>
+
+          <!-- User Section -->
+          <div id="authContainer" class="relative">
+            <!-- Populated dynamically via JS -->
+            <button id="googleLoginBtn" class="flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg shadow-sm transition">
+              <svg class="w-4 h-4" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.14z"/>
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+              </svg>
+              <span class="hidden sm:inline">Google Auth</span>
+            </button>
+          </div>
+
+          <!-- Past Orders Button -->
+          <button id="viewOrdersBtn" class="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-700 hover:text-brand-600 hover:bg-slate-100 rounded-lg transition" title="View Orders">
+            <i data-lucide="package" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Orders</span>
+          </button>
+
+          <!-- Cart Trigger Button -->
+          <button id="cartDrawerBtn" class="relative flex items-center gap-2 px-3 sm:px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium text-xs sm:text-sm rounded-xl shadow-md shadow-brand-500/25 transition">
+            <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Cart</span>
+            <span id="cartCountBadge" class="bg-white text-brand-700 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center -ml-0.5">0</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Mobile Search Bar -->
+      <div class="pb-3 md:hidden">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+          <input 
+            type="text" 
+            id="mobileSearchInput" 
+            placeholder="Search products..." 
+            class="w-full pl-9 pr-4 py-2 text-xs bg-slate-100 border border-transparent focus:border-brand-500 rounded-full outline-none"
+          />
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-b from-brand-50 via-white to-slate-50 border-b border-slate-200/60 py-10 sm:py-14">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+        
+        <div class="max-w-xl text-center md:text-left">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold uppercase tracking-wider mb-4">
+            <span class="w-2 h-2 rounded-full bg-brand-600"></span>
+            HNG 15 Stage 2 Storefront
+          </div>
+          <h1 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            Curated essentials for everyday excellence.
+          </h1>
+          <p class="mt-4 text-sm sm:text-base text-slate-600 leading-relaxed">
+            Experience frictionless shopping powered by <strong class="text-slate-800">Neon/Supabase PostgreSQL</strong> persistence, <strong class="text-slate-800">Google Cloud Auth</strong>, and instant <strong class="text-slate-800">Mailgun</strong> order receipts.
+          </p>
+          <div class="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-slate-500">
+            <span class="flex items-center gap-1.5"><i data-lucide="database" class="w-4 h-4 text-brand-600"></i> Neon / Supabase</span>
+            <span class="flex items-center gap-1.5"><i data-lucide="mail" class="w-4 h-4 text-brand-600"></i> Mailgun Receipts</span>
+            <span class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-4 h-4 text-brand-600"></i> Google Auth</span>
+          </div>
+        </div>
+
+        <!-- Hero Feature Card -->
+        <div class="w-full md:w-auto bg-white p-5 rounded-2xl shadow-xl shadow-slate-200 border border-slate-100 flex flex-col gap-3 min-w-[280px]">
+          <div class="flex items-center gap-3">
+            <div class="p-2.5 rounded-xl bg-emerald-50 text-emerald-600">
+              <i data-lucide="truck" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-slate-900">Complimentary Shipping</p>
+              <p class="text-[11px] text-slate-500">Orders over $50</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="p-2.5 rounded-xl bg-brand-50 text-brand-600">
+              <i data-lucide="shield" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-slate-900">Google OAuth 2.0</p>
+              <p class="text-[11px] text-slate-500">One-click authenticated checkout</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
+              <i data-lucide="send" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-slate-900">Mailgun Confirmations</p>
+              <p class="text-[11px] text-slate-500">HTML order invoices delivered instantly</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Catalog Section -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    
+    <!-- Filter Tabs & Sort Controls -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      
+      <!-- Category Pills -->
+      <div id="categoryTabs" class="flex flex-wrap gap-2 overflow-x-auto max-w-full pb-1">
+        <button data-category="all" class="category-btn active px-4 py-2 text-xs sm:text-sm font-semibold rounded-full bg-brand-600 text-white transition shadow-sm">
+          All Products
+        </button>
+        <!-- Populated via JS -->
+      </div>
+
+      <!-- Sort Dropdown -->
+      <div class="flex items-center gap-2 self-end sm:self-auto text-xs sm:text-sm text-slate-600">
+        <label for="sortSelect" class="font-medium">Sort by:</label>
+        <select id="sortSelect" class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium focus:border-brand-500 outline-none">
+          <option value="featured">Featured</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+          <option value="rating">Top Rated</option>
+          <option value="newest">Newest Arrivals</option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- Products Grid -->
+    <div id="productsGrid" class="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <!-- Loading Skeleton / Items populated via JS -->
+      <div class="col-span-full py-16 text-center text-slate-400">
+        <i data-lucide="loader" class="w-8 h-8 animate-spin mx-auto text-brand-600"></i>
+        <p class="mt-3 text-sm">Loading product catalog...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Slide-out Cart Drawer -->
+  <div id="cartDrawer" class="fixed inset-0 z-50 overflow-hidden pointer-events-none transition-opacity duration-300 opacity-0">
+    <div id="cartBackdrop" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm pointer-events-auto"></div>
+    <div class="fixed inset-y-0 right-0 max-w-full flex pl-10 pointer-events-auto">
+      <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col">
+        
+        <!-- Cart Header -->
+        <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+          <div class="flex items-center gap-2">
+            <i data-lucide="shopping-bag" class="w-5 h-5 text-brand-600"></i>
+            <h2 class="text-lg font-bold text-slate-900">Your Shopping Cart</h2>
+          </div>
+          <button id="closeCartBtn" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-lg transition">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Cart Items List -->
+        <div id="cartItemsList" class="flex-1 overflow-y-auto p-5 space-y-4">
+          <!-- Populated via JS -->
+        </div>
+
+        <!-- Cart Summary Footer -->
+        <div class="p-5 border-t border-slate-200 bg-slate-50 space-y-3">
+          <div class="flex justify-between text-sm text-slate-600">
+            <span>Subtotal</span>
+            <span id="cartSubtotal" class="font-semibold text-slate-900">$0.00</span>
+          </div>
+          <div class="flex justify-between text-sm text-slate-600">
+            <span>Estimated Shipping</span>
+            <span id="cartShipping" class="font-semibold text-slate-900">Free</span>
+          </div>
+          <div class="flex justify-between text-base font-bold text-slate-900 border-t border-slate-200 pt-2">
+            <span>Total</span>
+            <span id="cartTotal" class="text-brand-700 text-lg">$0.00</span>
+          </div>
+
+          <button id="openCheckoutBtn" class="w-full mt-2 py-3 px-4 bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white font-semibold rounded-xl shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed">
+            <span>Proceed to Checkout</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Modal -->
+  <div id="checkoutModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden my-8">
+      
+      <!-- Checkout Header -->
+      <div class="p-5 sm:p-6 border-b border-slate-200 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold">Secure Checkout</h2>
+          <p class="text-xs text-indigo-200 mt-0.5">Complete your order with instant Mailgun delivery receipt</p>
+        </div>
+        <button id="closeCheckoutBtn" class="p-2 text-slate-400 hover:text-white rounded-lg transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Checkout Form -->
+      <form id="checkoutForm" class="p-5 sm:p-8 space-y-6">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Left Column: Shipping & Contact -->
+          <div class="space-y-4">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <i data-lucide="map-pin" class="w-4 h-4 text-brand-600"></i> Shipping Address
+            </h3>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+              <input type="text" id="custName" required placeholder="John Doe" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:border-brand-500 outline-none" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address (for Mailgun receipt) *</label>
+              <input type="email" id="custEmail" required placeholder="john@example.com" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:border-brand-500 outline-none" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number</label>
+              <input type="tel" id="custPhone" placeholder="+1 (555) 000-0000" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:border-brand-500 outline-none" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Street Address *</label>
+              <input type="text" id="custAddress" required placeholder="123 Market St, Apt 4B" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:border-brand-500 outline-none" />
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">City *</label>
+                <input type="text" id="custCity" required placeholder="San Francisco" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:border-brand-500 outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">State *</label>
+                <input type="text" id="custState" required placeholder="CA" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:border-brand-500 outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Zip Code *</label>
+                <input type="text" id="custZip" required placeholder="94105" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:border-brand-500 outline-none" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Payment & Order Summary -->
+          <div class="space-y-4 flex flex-col justify-between">
+            <div>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2 mb-4">
+                <i data-lucide="credit-card" class="w-4 h-4 text-brand-600"></i> Payment Details
+              </h3>
+
+              <!-- Payment Simulation Card -->
+              <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-medium">
+                  <span>Simulated Card Payment</span>
+                  <div class="flex gap-1 text-slate-400">
+                    <span class="font-bold text-indigo-600">VISA</span>
+                    <span class="font-bold text-amber-600">MC</span>
+                  </div>
+                </div>
+
+                <div>
+                  <input type="text" value="4242 •••• •••• 4242" readonly class="w-full px-3 py-2 text-xs font-mono bg-white border border-slate-200 rounded-lg text-slate-700 select-none cursor-default" />
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <input type="text" value="12 / 28" readonly class="w-full px-3 py-2 text-xs font-mono bg-white border border-slate-200 rounded-lg text-slate-700 select-none cursor-default" />
+                  <input type="text" value="CVC 982" readonly class="w-full px-3 py-2 text-xs font-mono bg-white border border-slate-200 rounded-lg text-slate-700 select-none cursor-default" />
+                </div>
+                <p class="text-[11px] text-slate-500 italic">Pre-filled test credentials for seamless testing.</p>
+              </div>
+
+              <!-- Order Mini Summary -->
+              <div class="mt-4 p-4 rounded-xl bg-brand-50/60 border border-brand-100 space-y-2 text-xs">
+                <div class="flex justify-between text-slate-600">
+                  <span>Items Count:</span>
+                  <span id="checkoutItemsCount" class="font-bold text-slate-800">0</span>
+                </div>
+                <div class="flex justify-between text-slate-600">
+                  <span>Subtotal:</span>
+                  <span id="checkoutSubtotal" class="font-bold text-slate-800">$0.00</span>
+                </div>
+                <div class="flex justify-between text-slate-600">
+                  <span>Shipping:</span>
+                  <span id="checkoutShipping" class="font-bold text-emerald-600">Free</span>
+                </div>
+                <div class="flex justify-between text-sm font-bold text-slate-900 border-t border-brand-200 pt-2 mt-2">
+                  <span>Grand Total:</span>
+                  <span id="checkoutTotal" class="text-brand-700 text-base">$0.00</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="placeOrderBtn" class="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold rounded-xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition">
+              <i data-lucide="lock" class="w-4 h-4"></i>
+              <span>Pay & Place Order</span>
+            </button>
+          </div>
+
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Order Confirmation Modal -->
+  <div id="confirmationModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 sm:p-8 text-center my-8">
+      
+      <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+        <i data-lucide="check" class="w-8 h-8 stroke-[3]"></i>
+      </div>
+
+      <h2 class="text-2xl font-extrabold text-slate-900">Order Placed Successfully!</h2>
+      <p class="text-sm text-slate-600 mt-1">Thank you for your purchase.</p>
+
+      <div class="my-6 p-4 rounded-xl bg-slate-50 border border-slate-200 text-left space-y-2 text-xs">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Order Reference:</span>
+          <strong id="confirmOrderId" class="text-slate-900 font-mono">ORD-000000</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Total Paid:</span>
+          <strong id="confirmOrderTotal" class="text-brand-700 font-bold">$0.00</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Status:</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">CONFIRMED</span>
+        </div>
+      </div>
+
+      <!-- Mailgun Confirmation Notice -->
+      <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 text-left flex items-start gap-2.5">
+        <i data-lucide="mail-check" class="w-5 h-5 text-brand-600 shrink-0 mt-0.5"></i>
+        <div>
+          <span class="font-bold">Confirmation Email Dispatched</span>
+          <p class="text-[11px] text-indigo-700 mt-0.5">
+            A full HTML receipt and invoice was sent to <strong id="confirmEmail">email</strong> via <strong class="underline">Mailgun</strong>.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-col sm:flex-row gap-3">
+        <button id="closeConfirmBtn" class="flex-1 py-2.5 px-4 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl text-sm transition">
+          Continue Shopping
+        </button>
+        <button id="viewMyOrdersConfirmBtn" class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition">
+          View All Orders
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Orders History Modal -->
+  <div id="ordersModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden my-8 max-h-[85vh] flex flex-col">
+      
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-2">
+          <i data-lucide="package" class="w-5 h-5 text-brand-600"></i>
+          <h2 class="text-lg font-bold text-slate-900">Order History</h2>
+        </div>
+        <button id="closeOrdersBtn" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div id="ordersListContainer" class="flex-1 overflow-y-auto p-5 space-y-4">
+        <!-- Populated via JS -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- Footer -->
+  <footer class="mt-auto bg-slate-900 text-slate-400 border-t border-slate-800 text-xs py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-lg bg-brand-600 text-white flex items-center justify-center font-bold text-xs">N</div>
+        <span class="text-slate-200 font-semibold">NovaShop</span>
+        <span>&mdash; HNG 15 Internship Task 2</span>
+      </div>
+      <div class="flex items-center gap-6">
+        <a href="/docs" target="_blank" class="hover:text-white transition flex items-center gap-1">
+          <i data-lucide="code" class="w-3.5 h-3.5"></i> Swagger Docs
+        </a>
+        <a href="/redoc" target="_blank" class="hover:text-white transition flex items-center gap-1">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i> ReDoc
+        </a>
+        <a href="/api/health" target="_blank" class="hover:text-white transition flex items-center gap-1">
+          <i data-lucide="activity" class="w-3.5 h-3.5"></i> Health Check
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

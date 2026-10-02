@@ -1,0 +1,56 @@
+/* Custom Styles & Animation Enhancements */
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Category active styling */
+.category-btn.active {
+  background-color: #4f46e5;
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25);
+}
+
+.category-btn:not(.active) {
+  background-color: #ffffff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.category-btn:not(.active):hover {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+/* Product Card Transitions */
+.product-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* Cart drawer open state */
+#cartDrawer.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Toast Animation */
+.toast-enter {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
