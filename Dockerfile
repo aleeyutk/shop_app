@@ -7,14 +7,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PORT=8000
 
-# Install system dependencies
+# Install curl for container health checks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    gcc \
-    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install python dependencies
+# Install pre-built python dependencies (uses psycopg2-binary precompiled wheels)
 COPY requirements-prod.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements-prod.txt
