@@ -108,3 +108,20 @@ class OrderItem(Base):
 
     # Relationships
     order: Mapped["Order"] = relationship("Order", back_populates="items")
+
+
+class CartItem(Base):
+    __tablename__ = "cart_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship("User")
+    product: Mapped["Product"] = relationship("Product")
+

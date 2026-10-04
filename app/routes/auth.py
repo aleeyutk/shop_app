@@ -172,7 +172,10 @@ def mock_login(
         max_age=60 * 60 * 24 * 7,
         samesite="lax",
     )
-    return user
+    user_out = UserOut.model_validate(user)
+    user_out.token = token
+    return user_out
+
 
 
 @router.post("/logout", summary="Logout User")

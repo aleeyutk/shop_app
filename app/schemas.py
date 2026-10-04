@@ -46,6 +46,28 @@ class CartItemIn(BaseModel):
     quantity: int = Field(default=1, gt=0, le=1000)
 
 
+class CartItemUpdateIn(BaseModel):
+    quantity: int = Field(ge=0, le=1000)
+
+
+class CartItemOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    product_id: int
+    quantity: int
+    product: ProductOut
+    subtotal: float
+
+
+class CartOut(BaseModel):
+    items: List[CartItemOut]
+    total_count: int
+    subtotal: float
+    shipping_fee: float
+    total: float
+
+
 class CheckoutIn(BaseModel):
     items: List[CartItemIn] = Field(min_length=1, description="List of items in the cart to checkout")
     customer_name: str = Field(min_length=2, max_length=120)
@@ -111,6 +133,7 @@ class UserOut(BaseModel):
     avatar_url: Optional[str] = None
     google_id: Optional[str] = None
     created_at: datetime
+    token: Optional[str] = None
 
 
 class MockLoginIn(BaseModel):

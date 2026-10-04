@@ -28,6 +28,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadProducts(),
   ]);
 
+  if (state.currentUser) {
+    await syncCartFromServer();
+  }
+
+  // Periodic polling for real-time synchronization between Web & Mobile (every 2.5s)
+  setInterval(() => {
+    if (state.currentUser) {
+      syncCartFromServer();
+    }
+  }, 2500);
+
+  // Sync immediately when browser window regains focus
+  window.addEventListener('focus', () => {
+    if (state.currentUser) {
+      syncCartFromServer();
+    }
+  });
+
   // Check URL query parameters for login status
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('login') === 'success') {
@@ -66,6 +84,7 @@ async function fetchCurrentUser() {
     if (res.ok) {
       state.currentUser = await res.json();
       renderAuthUser(state.currentUser);
+      await syncCartFromServer();
     } else {
       state.currentUser = null;
       renderAuthGuest();
@@ -73,6 +92,27 @@ async function fetchCurrentUser() {
   } catch (err) {
     state.currentUser = null;
     renderAuthGuest();
+  }
+}
+
+async function syncCartFromServer() {
+  if (!state.currentUser) return;
+  try {
+    const res = await fetch('/api/cart');
+    if (!res.ok) return;
+    const cartData = await res.json();
+    state.cart = cartData.items.map(it => ({
+      product: it.product,
+      quantity: it.quantity,
+    }));
+    saveCart();
+    updateCartBadge();
+    const drawer = document.getElementById('cartDrawer');
+    if (drawer && !drawer.classList.contains('translate-x-full')) {
+      renderCartDrawer();
+    }
+  } catch (err) {
+    console.warn('Cart sync failed:', err);
   }
 }
 
@@ -284,6 +324,7 @@ async function handleQuickDemoLogin() {
     if (res.ok) {
       state.currentUser = await res.json();
       renderAuthUser(state.currentUser);
+      await syncCartFromServer();
       showToast('Logged in as demo user (Alex Rivera)', 'success');
     }
   } catch (err) {
@@ -295,6 +336,10 @@ async function handleLogout() {
   try {
     await fetch('/auth/logout', { method: 'POST' });
     state.currentUser = null;
+    state.cart = [];
+    saveCart();
+    updateCartBadge();
+    renderCartDrawer();
     renderAuthGuest();
     showToast('Signed out successfully', 'info');
   } catch (err) {
@@ -305,7 +350,7 @@ async function handleLogout() {
 // ------------------------------------------------------------------------------
 // Cart Operations
 // ------------------------------------------------------------------------------
-function handleAddToCart(productId) {
+async function handleAddToCart(productId) {
   const product = state.products.find(p => p.id === productId);
   if (!product) return;
 
@@ -319,27 +364,68 @@ function handleAddToCart(productId) {
   saveCart();
   updateCartBadge();
   showToast(`Added "${product.name}" to cart`, 'success');
+
+  if (state.currentUser) {
+    try {
+      await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId, quantity: 1 }),
+      });
+      syncCartFromServer();
+    } catch (err) {
+      console.warn('Failed to sync added item with server:', err);
+    }
+  }
 }
 
-function updateCartQuantity(productId, delta) {
+async function updateCartQuantity(productId, delta) {
   const index = state.cart.findIndex(item => item.product.id === productId);
   if (index === -1) return;
 
-  state.cart[index].quantity += delta;
-  if (state.cart[index].quantity <= 0) {
+  const newQty = state.cart[index].quantity + delta;
+  if (newQty <= 0) {
     state.cart.splice(index, 1);
+  } else {
+    state.cart[index].quantity = newQty;
   }
 
   saveCart();
   renderCartDrawer();
   updateCartBadge();
+
+  if (state.currentUser) {
+    try {
+      if (newQty <= 0) {
+        await fetch(`/api/cart/${productId}`, { method: 'DELETE' });
+      } else {
+        await fetch(`/api/cart/${productId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: newQty }),
+        });
+      }
+      syncCartFromServer();
+    } catch (err) {
+      console.warn('Failed to sync item quantity with server:', err);
+    }
+  }
 }
 
-function removeFromCart(productId) {
+async function removeFromCart(productId) {
   state.cart = state.cart.filter(item => item.product.id !== productId);
   saveCart();
   renderCartDrawer();
   updateCartBadge();
+
+  if (state.currentUser) {
+    try {
+      await fetch(`/api/cart/${productId}`, { method: 'DELETE' });
+      syncCartFromServer();
+    } catch (err) {
+      console.warn('Failed to sync item removal with server:', err);
+    }
+  }
 }
 
 function saveCart() {
@@ -494,6 +580,7 @@ async function handleCheckoutSubmit(e) {
     state.cart = [];
     saveCart();
     updateCartBadge();
+    renderCartDrawer();
 
     // Close checkout and show confirmation
     closeCheckoutModal();

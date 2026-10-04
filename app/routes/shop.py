@@ -8,14 +8,18 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 
 from app.database import get_db, SessionLocal
-from app.models import Category, Product, Order, OrderItem, User
+from app.models import Category, Product, Order, OrderItem, User, CartItem
 from app.schemas import (
     CategoryOut,
     ProductOut,
     CheckoutIn,
     OrderOut,
+    CartOut,
+    CartItemOut,
+    CartItemIn,
+    CartItemUpdateIn,
 )
-from app.routes.auth import get_current_user_optional
+from app.routes.auth import get_current_user_optional, get_current_user_required
 from app.services.email_service import send_order_confirmation_email
 
 logger = logging.getLogger("shop.api")
@@ -235,10 +239,16 @@ def checkout(
     db.commit()
     db.refresh(new_order)
 
+    # Clear persisted user cart upon successful checkout
+    if current_user:
+        db.query(CartItem).filter(CartItem.user_id == current_user.id).delete()
+        db.commit()
+
     # Dispatch Mailgun email in background
     background_tasks.add_task(trigger_email_background, new_order.id)
 
     return new_order
+
 
 
 @router.get("/orders/{order_id}", response_model=OrderOut, summary="Get Order by ID")
@@ -279,3 +289,173 @@ def list_orders(
         query = query.order_by(Order.created_at.desc()).limit(10)
 
     return query.order_by(Order.created_at.desc()).all()
+
+
+# ------------------------------------------------------------------------------
+# Cart Endpoints (Instant Synchronisation for Web & Mobile)
+# ------------------------------------------------------------------------------
+def build_cart_response(db: Session, user_id: int) -> CartOut:
+    items = (
+        db.query(CartItem)
+        .filter(CartItem.user_id == user_id)
+        .order_by(CartItem.id.asc())
+        .all()
+    )
+    cart_items_out = []
+    subtotal = 0.0
+    total_count = 0
+
+    for item in items:
+        if not item.product:
+            continue
+        item_subtotal = round(item.product.price * item.quantity, 2)
+        subtotal += item_subtotal
+        total_count += item.quantity
+        cart_items_out.append(
+            CartItemOut(
+                id=item.id,
+                product_id=item.product_id,
+                quantity=item.quantity,
+                product=ProductOut.model_validate(item.product),
+                subtotal=item_subtotal,
+            )
+        )
+
+    subtotal = round(subtotal, 2)
+    # Free shipping threshold $50; $15 if cart has items but subtotal < $50
+    shipping_fee = 0.0 if (subtotal >= 50.0 or total_count == 0) else 15.0
+    total = round(subtotal + shipping_fee, 2)
+
+    return CartOut(
+        items=cart_items_out,
+        total_count=total_count,
+        subtotal=subtotal,
+        shipping_fee=shipping_fee,
+        total=total,
+    )
+
+
+@router.get("/cart", response_model=CartOut, summary="Get Current User Cart")
+def get_cart(
+    user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+):
+    """Retrieve full cart contents for the currently authenticated user."""
+    if not user:
+        return CartOut(
+            items=[],
+            total_count=0,
+            subtotal=0.0,
+            shipping_fee=0.0,
+            total=0.0,
+        )
+    return build_cart_response(db, user.id)
+
+
+@router.post("/cart", response_model=CartOut, summary="Add or Increment Item in Cart")
+def add_to_cart(
+    payload: CartItemIn,
+    user: User = Depends(get_current_user_required),
+    db: Session = Depends(get_db),
+):
+    """Add a product or increment its quantity in the user's cart."""
+    product = db.query(Product).filter(Product.id == payload.product_id).first()
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product with id {payload.product_id} does not exist.",
+        )
+
+    cart_item = (
+        db.query(CartItem)
+        .filter(
+            CartItem.user_id == user.id,
+            CartItem.product_id == payload.product_id,
+        )
+        .first()
+    )
+
+    if cart_item:
+        cart_item.quantity += payload.quantity
+        if cart_item.quantity > product.stock:
+            cart_item.quantity = product.stock
+    else:
+        qty = min(payload.quantity, product.stock)
+        cart_item = CartItem(
+            user_id=user.id,
+            product_id=product.id,
+            quantity=qty,
+        )
+        db.add(cart_item)
+
+    db.commit()
+    return build_cart_response(db, user.id)
+
+
+@router.put("/cart/{product_id}", response_model=CartOut, summary="Update Cart Item Quantity")
+def update_cart_item(
+    product_id: int,
+    payload: CartItemUpdateIn,
+    user: User = Depends(get_current_user_required),
+    db: Session = Depends(get_db),
+):
+    """Directly set the quantity of a specific cart item."""
+    cart_item = (
+        db.query(CartItem)
+        .filter(
+            CartItem.user_id == user.id,
+            CartItem.product_id == product_id,
+        )
+        .first()
+    )
+
+    if not cart_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product with id {product_id} not found in cart.",
+        )
+
+    if payload.quantity <= 0:
+        db.delete(cart_item)
+    else:
+        product = db.query(Product).filter(Product.id == product_id).first()
+        max_stock = product.stock if product else 100
+        cart_item.quantity = min(payload.quantity, max_stock)
+
+    db.commit()
+    return build_cart_response(db, user.id)
+
+
+@router.delete("/cart/{product_id}", response_model=CartOut, summary="Remove Item from Cart")
+def remove_cart_item(
+    product_id: int,
+    user: User = Depends(get_current_user_required),
+    db: Session = Depends(get_db),
+):
+    """Remove a single product entirely from the user's cart."""
+    cart_item = (
+        db.query(CartItem)
+        .filter(
+            CartItem.user_id == user.id,
+            CartItem.product_id == product_id,
+        )
+        .first()
+    )
+
+    if cart_item:
+        db.delete(cart_item)
+        db.commit()
+
+    return build_cart_response(db, user.id)
+
+
+@router.delete("/cart", response_model=CartOut, summary="Clear User Cart")
+def clear_cart(
+    user: User = Depends(get_current_user_required),
+    db: Session = Depends(get_db),
+):
+    """Clear all items from the current user's cart."""
+    db.query(CartItem).filter(CartItem.user_id == user.id).delete()
+    db.commit()
+    return CartOut(items=[], total_count=0, subtotal=0.0, shipping_fee=0.0, total=0.0)
+
