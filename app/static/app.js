@@ -10,6 +10,7 @@ const state = {
   activeCategory: 'all',
   activeSort: 'featured',
   searchQuery: '',
+  googleAuthAvailable: false,
 };
 
 // ------------------------------------------------------------------------------
@@ -68,6 +69,7 @@ async function fetchHealth() {
     const res = await fetch('/api/health');
     if (!res.ok) return;
     const data = await res.json();
+    state.googleAuthAvailable = !!data.google_auth_configured;
     
     const engineText = document.getElementById('healthEngineText');
     if (engineText) {
@@ -264,20 +266,16 @@ function renderAuthGuest() {
   const container = document.getElementById('authContainer');
   container.innerHTML = `
     <div class="flex items-center gap-1.5">
-      <a href="/auth/google/login" class="flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg shadow-sm transition">
-        <svg class="w-4 h-4" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.14z"/>
-          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
-          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-        </svg>
-        <span class="hidden sm:inline">Google Auth</span>
-      </a>
-      <button onclick="handleQuickDemoLogin()" class="px-2 py-1.5 text-[11px] font-medium text-slate-500 hover:text-brand-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition" title="1-Click Demo Login">
-        Demo
+      <button onclick="openLoginModal()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm transition">
+        <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
+        <span>Sign In</span>
+      </button>
+      <button onclick="handleQuickDemoLogin()" class="px-2.5 py-1.5 text-xs font-semibold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg transition" title="1-Click Demo Login">
+        ⚡ Demo
       </button>
     </div>
   `;
+  initLucide();
 }
 
 function renderAuthUser(user) {
@@ -764,6 +762,71 @@ function showToast(message, type = 'info') {
   }, 3500);
 }
 
+// ------------------------------------------------------------------------------
+// Login Modal Handlers
+// ------------------------------------------------------------------------------
+function openLoginModal() {
+  const modal = document.getElementById('loginModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    initLucide();
+  }
+}
+
+function closeLoginModal() {
+  const modal = document.getElementById('loginModal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+async function handleCustomEmailLogin(e) {
+  e.preventDefault();
+  const nameInput = document.getElementById('loginNameInput');
+  const emailInput = document.getElementById('loginEmailInput');
+  const btn = document.getElementById('customLoginBtn');
+  
+  const name = nameInput ? nameInput.value.trim() : '';
+  const email = emailInput ? emailInput.value.trim() : '';
+  if (!email || !name) return;
+
+  btn.disabled = true;
+  btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Signing in...</span>`;
+  initLucide();
+
+  try {
+    const res = await fetch('/auth/mock-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email,
+        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D8ABC&color=fff`,
+      }),
+    });
+    if (!res.ok) throw new Error('Sign in failed');
+    state.currentUser = await res.json();
+    renderAuthUser(state.currentUser);
+    await syncCartFromServer();
+    closeLoginModal();
+    showToast(`Welcome, ${state.currentUser.name}!`, 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<span>Continue with Account</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+    initLucide();
+  }
+}
+
+function handleGoogleAuthClick() {
+  if (state.googleAuthAvailable) {
+    window.location.href = '/auth/google/login';
+  } else {
+    showToast('Google OAuth is not configured on this instance. Please use Email Sign In or 1-Click Demo!', 'warning');
+  }
+}
+
 // Expose handlers to global window for inline onclick handlers
 window.handleAddToCart = handleAddToCart;
 window.updateCartQuantity = updateCartQuantity;
@@ -771,3 +834,7 @@ window.removeFromCart = removeFromCart;
 window.handleQuickDemoLogin = handleQuickDemoLogin;
 window.handleLogout = handleLogout;
 window.openOrdersModal = openOrdersModal;
+window.openLoginModal = openLoginModal;
+window.closeLoginModal = closeLoginModal;
+window.handleCustomEmailLogin = handleCustomEmailLogin;
+window.handleGoogleAuthClick = handleGoogleAuthClick;
