@@ -108,7 +108,7 @@ async function syncCartFromServer() {
     saveCart();
     updateCartBadge();
     const drawer = document.getElementById('cartDrawer');
-    if (drawer && !drawer.classList.contains('translate-x-full')) {
+    if (drawer && !drawer.classList.contains('hidden')) {
       renderCartDrawer();
     }
   } catch (err) {
@@ -690,11 +690,11 @@ function closeOrdersModal() {
 // ------------------------------------------------------------------------------
 function openCartDrawer() {
   renderCartDrawer();
-  document.getElementById('cartDrawer').classList.add('open');
+  document.getElementById('cartDrawer').classList.remove('hidden');
 }
 
 function closeCartDrawer() {
-  document.getElementById('cartDrawer').classList.remove('open');
+  document.getElementById('cartDrawer').classList.add('hidden');
 }
 
 function setupEventListeners() {
