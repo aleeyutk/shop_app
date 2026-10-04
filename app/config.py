@@ -33,13 +33,16 @@ class Settings(BaseSettings):
     def normalized_database_url(self) -> str:
         """
         Normalize DATABASE_URL for SQLAlchemy 2.0 compatibility.
-        Neon and Supabase often output URLs starting with postgres:// instead of postgresql://.
+        Neon and Supabase output URLs starting with postgres:// or postgresql://.
+        Ensures postgresql+psycopg2 driver is specified for psycopg2-binary.
         """
         url = self.DATABASE_URL.strip()
         if not url:
             return "sqlite:///./shop.db"
         if url.startswith("postgres://"):
-            url = url.replace("postgres://", "postgresql://", 1)
+            url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif url.startswith("postgresql://") and not url.startswith("postgresql+"):
+            url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
         return url
 
     @property
